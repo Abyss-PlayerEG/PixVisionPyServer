@@ -1,0 +1,13 @@
+[project]
+name = "pix-version-py-server"
+version = "1.0.0"
+description = "多平台账号检测API服务 - 支持B站、抖音、微博等平台的账号检测和用户信息获取"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.136.1",
+    "fastapi-offline>=1.7.6",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.1",
+    "uvicorn>=0.47.0",
+]
