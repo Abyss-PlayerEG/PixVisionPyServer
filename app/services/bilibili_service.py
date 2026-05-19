@@ -20,15 +20,17 @@ class BilibiliService(BaseAccountService):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Referer": "https://www.bilibili.com/",
+        "Origin": "https://www.bilibili.com",
     }
     
     # 最大重试次数
-    MAX_RETRIES = 3
+    MAX_RETRIES = 5
     # 重试延迟（秒）
     RETRY_DELAY = 1
     
     # 限流重试配置
-    RATE_LIMIT_MAX_RETRIES = 25  # 限流时最大重试次数
+    RATE_LIMIT_MAX_RETRIES = 30  # 限流时最大重试次数
     RATE_LIMIT_RETRY_DELAY = 1   # 限流时每次重试间隔（秒）
     
     @property
@@ -61,6 +63,11 @@ class BilibiliService(BaseAccountService):
         """
         last_exception = None
         
+        # 如果配置了 SESSDATA，自动添加到 Cookie 中
+        request_cookies = cookies or {}
+        if settings.BILIBILI_SESSDATA and "SESSDATA" not in request_cookies:
+            request_cookies["SESSDATA"] = settings.BILIBILI_SESSDATA
+        
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
                 request_headers = {**self.DEFAULT_HEADERS, **(headers or {})}
@@ -70,10 +77,23 @@ class BilibiliService(BaseAccountService):
                         url, 
                         params=params,
                         headers=request_headers,
-                        cookies=cookies
+                        cookies=request_cookies if request_cookies else None
                     )
                     response.raise_for_status()
                     data = response.json()
+                    
+                    # 检查是否为风控错误（-401）
+                    if data.get("code") == -401:
+                        error_msg = data.get("message", "非法访问")
+                        ga_data = data.get("data", {}).get("ga_data", {})
+                        risk_level = ga_data.get("risk_level", "unknown")
+                        decisions = ga_data.get("decisions", [])
+                        
+                        raise APIRequestException(
+                            self.platform_name,
+                            f"B站风控拦截: {error_msg} (风险等级: {risk_level}, 决策: {', '.join(decisions)})",
+                            error_detail="请配置有效的 BILIBILI_SESSDATA 或降低请求频率"
+                        )
                     
                     # 检查是否为限流错误
                     if handle_rate_limit and data.get("code") == -799:
@@ -82,7 +102,7 @@ class BilibiliService(BaseAccountService):
                             continue
                         else:
                             # 达到最大重试次数，使用特殊的限流重试逻辑
-                            return await self._handle_rate_limit(url, params, headers, cookies)
+                            return await self._handle_rate_limit(url, params, headers, request_cookies)
                     
                     return data
                     
@@ -141,6 +161,11 @@ class BilibiliService(BaseAccountService):
         """
         last_data = None
         
+        # 确保使用 SESSDATA
+        request_cookies = cookies or {}
+        if settings.BILIBILI_SESSDATA and "SESSDATA" not in request_cookies:
+            request_cookies["SESSDATA"] = settings.BILIBILI_SESSDATA
+        
         for attempt in range(1, self.RATE_LIMIT_MAX_RETRIES + 1):
             try:
                 request_headers = {**self.DEFAULT_HEADERS, **(headers or {})}
@@ -150,10 +175,19 @@ class BilibiliService(BaseAccountService):
                         url,
                         params=params,
                         headers=request_headers,
-                        cookies=cookies
+                        cookies=request_cookies if request_cookies else None
                     )
                     response.raise_for_status()
                     data = response.json()
+                    
+                    # 检查风控错误
+                    if data.get("code") == -401:
+                        error_msg = data.get("message", "非法访问")
+                        raise APIRequestException(
+                            self.platform_name,
+                            f"B站风控拦截: {error_msg}",
+                            error_detail="请配置有效的 BILIBILI_SESSDATA"
+                        )
                     
                     # 如果不再是限流错误，直接返回
                     if data.get("code") != -799:

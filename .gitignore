@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# 配置文件（包含敏感信息）
+.env
+.pix_vision/
+python-server-conf.json
+!python-server-conf.example.json

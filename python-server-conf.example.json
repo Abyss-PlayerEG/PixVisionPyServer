@@ -1,0 +1,6 @@
+{
+  "bilibili": {
+    "sessdata": "你的SESSDATA值填在这里",
+    "api_base": "https://api.bilibili.com"
+  }
+}
