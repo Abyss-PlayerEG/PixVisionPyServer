@@ -62,8 +62,7 @@ async def audit_content(request: AuditRequest):
             data={
                 "status": result.status.value,
                 "reason": result.reason,
-                "insult_words": result.insult_words,
-                "confidence": result.confidence
+                "insult_words": result.insult_words
             },
             message="审核完成"
         )

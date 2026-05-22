@@ -63,45 +63,6 @@ class AIAuditService:
             logger.error(f"黑名单正则编译失败: {e}")
             return None
     
-    def _apply_blacklist_filter(self, text: str, ai_result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        对 AI 审核结果应用黑名单后置过滤
-        
-        检测文案中是否包含敏感词黑名单中的词汇，若命中则：
-        - 强制将 status 改为 violation
-        - 将命中词合并到 insult_words
-        - 更新 reason
-        
-        Args:
-            text: 原始待审核文案
-            ai_result: AI 解析后的结果字典（已通过格式验证）
-            
-        Returns:
-            过滤后的结果字典（可能修改 status/reason/insult_words）
-        """
-        if self._blacklist_regex is None:
-            return ai_result
-        
-        # 在文本中查找所有命中词
-        matches = self._blacklist_regex.findall(text)
-        
-        if not matches:
-            return ai_result  # 无命中，保持 AI 原判
-        
-        # 去重
-        matched_words = list(set(matches))
-        
-        # 合并 AI 已有的 insult_words 和黑名单命中词
-        existing_insults = set(ai_result.get("insult_words", []))
-        all_insults = list(existing_insults | set(matched_words))
-        
-        # 强制 violation
-        ai_result["status"] = "violation"
-        ai_result["insult_words"] = all_insults
-        
-        logger.info(f"黑名单过滤命中 {len(matched_words)} 个词: {matched_words[:10]}")
-        return ai_result
-    
     def _parse_ai_response(self, content: str) -> Dict[str, Any]:
         """
         解析 AI 返回的 JSON 响应
@@ -218,13 +179,41 @@ class AIAuditService:
         content = response.choices[0].message.content.strip()
         return self._parse_ai_response(content)
     
+    def _apply_blacklist_prefilter(self, text: str) -> Optional[AuditResponse]:
+        """
+        黑名单前置过滤：先检查文案是否包含黑名单词汇
+        
+        命中则直接返回 violation，无需调用 AI；
+        未命中则返回 None，进入 AI 审核流程。
+        
+        Args:
+            text: 待审核文案
+            
+        Returns:
+            命中时返回 AuditResponse(violation)，未命中返回 None
+        """
+        if self._blacklist_regex is None:
+            return None
+        
+        matches = self._blacklist_regex.findall(text)
+        if not matches:
+            return None
+        
+        matched_words = list(set(matches))
+        logger.info(f"黑名单前置过滤命中 {len(matched_words)} 个词: {matched_words[:10]}")
+        return AuditResponse(
+            status=AuditStatus.VIOLATION,
+            reason="命中敏感词黑名单",
+            insult_words=matched_words
+        )
+    
     def audit_text_sync(self, text: str) -> AuditResponse:
         """
-        同步审核文案内容（含重试机制 + 黑名单后置过滤）
+        同步审核文案内容（黑名单前置过滤 + AI 审核 + 重试机制）
         
-        最多重试 N 次，直至 AI 返回正确格式的 JSON。
-        AI 格式正确后，再经黑名单过滤。
-        全部失败后降级返回 neutral 状态。
+        1. 先经黑名单前置过滤，命中直接返回 violation
+        2. 通过黑名单后调用 AI 审核，最多重试 N 次
+        3. 全部失败后降级返回 neutral 状态
         
         Args:
             text: 待审核的文案
@@ -232,6 +221,11 @@ class AIAuditService:
         Returns:
             审核结果
         """
+        # 黑名单前置过滤：命中直接返回，不调 AI
+        blacklist_result = self._apply_blacklist_prefilter(text)
+        if blacklist_result is not None:
+            return blacklist_result
+        
         max_retries = settings.AI_AUDIT_MAX_RETRIES
         retry_message = ""
         last_error = None
@@ -240,14 +234,10 @@ class AIAuditService:
             try:
                 result = self._call_ai_sync(text, retry_message)
                 
-                # 黑名单后置过滤：AI 格式正确后，检查黑名单词汇
-                result = self._apply_blacklist_filter(text, result)
-                
                 response = AuditResponse(
                     status=AuditStatus(result["status"]),
                     reason=result["reason"],
-                    insult_words=result.get("insult_words", []),
-                    confidence=None
+                    insult_words=result.get("insult_words", [])
                 )
                 
                 if attempt > 1:
@@ -280,11 +270,11 @@ class AIAuditService:
     
     async def audit_text(self, text: str) -> AuditResponse:
         """
-        异步审核文案内容（含重试机制 + 黑名单后置过滤）
+        异步审核文案内容（黑名单前置过滤 + AI 审核 + 重试机制）
         
-        最多重试 N 次，直至 AI 返回正确格式的 JSON。
-        AI 格式正确后，再经黑名单过滤。
-        全部失败后降级返回 neutral 状态。
+        1. 先经黑名单前置过滤，命中直接返回 violation
+        2. 通过黑名单后调用 AI 审核，最多重试 N 次
+        3. 全部失败后降级返回 neutral 状态
         
         Args:
             text: 待审核的文案
@@ -292,6 +282,11 @@ class AIAuditService:
         Returns:
             审核结果
         """
+        # 黑名单前置过滤：命中直接返回，不调 AI
+        blacklist_result = self._apply_blacklist_prefilter(text)
+        if blacklist_result is not None:
+            return blacklist_result
+        
         max_retries = settings.AI_AUDIT_MAX_RETRIES
         retry_message = ""
         last_error = None
@@ -300,14 +295,10 @@ class AIAuditService:
             try:
                 result = await self._call_ai_async(text, retry_message)
                 
-                # 黑名单后置过滤：AI 格式正确后，检查黑名单词汇
-                result = self._apply_blacklist_filter(text, result)
-                
                 response = AuditResponse(
                     status=AuditStatus(result["status"]),
                     reason=result["reason"],
-                    insult_words=result.get("insult_words", []),
-                    confidence=None
+                    insult_words=result.get("insult_words", [])
                 )
                 
                 if attempt > 1:

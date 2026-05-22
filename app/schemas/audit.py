@@ -2,7 +2,6 @@
 AI 文案审核相关的 Pydantic 模型
 """
 from pydantic import BaseModel, Field
-from typing import Optional
 from enum import Enum
 
 
@@ -41,11 +40,4 @@ class AuditResponse(BaseModel):
         default_factory=list,
         description="文案中的侮辱性词汇数组",
         examples=[["有病", "唐完了"]]
-    )
-    confidence: Optional[float] = Field(
-        None,
-        description="置信度 0-1（可选）",
-        ge=0.0,
-        le=1.0,
-        examples=[0.98]
     )
