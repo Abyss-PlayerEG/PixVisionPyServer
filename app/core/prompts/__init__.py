@@ -1,9 +1,10 @@
 """
 提示词模块
-集中管理所有 AI 提示词模板
+集中管理所有 AI 提示词模板及敏感词黑名单
 """
+import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 
 class PromptLoader:
@@ -46,11 +47,38 @@ class PromptLoader:
     
     @classmethod
     def clear_cache(cls):
-        """清空提示词缓存"""
+        """清空提示词及敏感词缓存"""
         cls._prompts_cache.clear()
+        cls._sensitive_words_cache = None
+        cls._sensitive_words_regex = None
 
 
 # 便捷函数
 def load_ai_audit_prompt() -> str:
     """加载 AI 文案审核系统提示词"""
     return PromptLoader.load_prompt("ai_audit_system")
+
+
+def load_sensitive_lexicon() -> List[str]:
+    """
+    加载敏感词黑名单
+    
+    Returns:
+        敏感词列表
+    """
+    # 缓存键
+    cache_key = "__sensitive_lexicon__"
+    if cache_key in PromptLoader._prompts_cache:
+        return PromptLoader._prompts_cache[cache_key]
+    
+    lexicon_file = Path(__file__).parent / "SensitiveLexicon.json"
+    if not lexicon_file.exists():
+        print(f"⚠️  敏感词黑名单文件不存在: {lexicon_file}")
+        return []
+    
+    with open(lexicon_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    words = data.get("words", [])
+    PromptLoader._prompts_cache[cache_key] = words
+    return words

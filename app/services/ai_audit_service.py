@@ -3,10 +3,11 @@ AI 文案审核服务
 """
 import json
 import logging
-from typing import Dict, Any, Optional
+import re
+from typing import Dict, Any, Optional, List
 from openai import OpenAI, AsyncOpenAI
 from app.core.config import settings
-from app.core.prompts import load_ai_audit_prompt
+from app.core.prompts import load_ai_audit_prompt, load_sensitive_lexicon
 from app.schemas.audit import AuditStatus, AuditResponse
 
 # 配置日志
@@ -36,6 +37,70 @@ class AIAuditService:
         )
         
         self.model = settings.AI_MODEL
+        
+        # 加载敏感词黑名单并编译正则（一次性，全生命周期复用）
+        self._blacklist_words = load_sensitive_lexicon()
+        self._blacklist_regex = self._compile_blacklist_regex()
+    
+    def _compile_blacklist_regex(self):
+        """
+        将黑名单词汇编译为正则表达式，用于高效匹配
+        
+        Returns:
+            编译后的正则对象，若黑名单为空则返回 None
+        """
+        if not self._blacklist_words:
+            logger.warning("敏感词黑名单为空，跳过黑名单过滤")
+            return None
+        
+        # 按长度降序排列，确保长词优先匹配（避免短词截断长词）
+        sorted_words = sorted(self._blacklist_words, key=len, reverse=True)
+        # 转义每个词中的正则特殊字符，用 | 连接
+        pattern = '|'.join(re.escape(w) for w in sorted_words)
+        try:
+            return re.compile(pattern)
+        except re.error as e:
+            logger.error(f"黑名单正则编译失败: {e}")
+            return None
+    
+    def _apply_blacklist_filter(self, text: str, ai_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        对 AI 审核结果应用黑名单后置过滤
+        
+        检测文案中是否包含敏感词黑名单中的词汇，若命中则：
+        - 强制将 status 改为 violation
+        - 将命中词合并到 insult_words
+        - 更新 reason
+        
+        Args:
+            text: 原始待审核文案
+            ai_result: AI 解析后的结果字典（已通过格式验证）
+            
+        Returns:
+            过滤后的结果字典（可能修改 status/reason/insult_words）
+        """
+        if self._blacklist_regex is None:
+            return ai_result
+        
+        # 在文本中查找所有命中词
+        matches = self._blacklist_regex.findall(text)
+        
+        if not matches:
+            return ai_result  # 无命中，保持 AI 原判
+        
+        # 去重
+        matched_words = list(set(matches))
+        
+        # 合并 AI 已有的 insult_words 和黑名单命中词
+        existing_insults = set(ai_result.get("insult_words", []))
+        all_insults = list(existing_insults | set(matched_words))
+        
+        # 强制 violation
+        ai_result["status"] = "violation"
+        ai_result["insult_words"] = all_insults
+        
+        logger.info(f"黑名单过滤命中 {len(matched_words)} 个词: {matched_words[:10]}")
+        return ai_result
     
     def _parse_ai_response(self, content: str) -> Dict[str, Any]:
         """
@@ -155,9 +220,10 @@ class AIAuditService:
     
     def audit_text_sync(self, text: str) -> AuditResponse:
         """
-        同步审核文案内容（含重试机制）
+        同步审核文案内容（含重试机制 + 黑名单后置过滤）
         
         最多重试 N 次，直至 AI 返回正确格式的 JSON。
+        AI 格式正确后，再经黑名单过滤。
         全部失败后降级返回 neutral 状态。
         
         Args:
@@ -173,6 +239,9 @@ class AIAuditService:
         for attempt in range(1, max_retries + 2):  # 首次 + N 次重试
             try:
                 result = self._call_ai_sync(text, retry_message)
+                
+                # 黑名单后置过滤：AI 格式正确后，检查黑名单词汇
+                result = self._apply_blacklist_filter(text, result)
                 
                 response = AuditResponse(
                     status=AuditStatus(result["status"]),
@@ -211,9 +280,10 @@ class AIAuditService:
     
     async def audit_text(self, text: str) -> AuditResponse:
         """
-        异步审核文案内容（含重试机制）
+        异步审核文案内容（含重试机制 + 黑名单后置过滤）
         
         最多重试 N 次，直至 AI 返回正确格式的 JSON。
+        AI 格式正确后，再经黑名单过滤。
         全部失败后降级返回 neutral 状态。
         
         Args:
@@ -229,6 +299,9 @@ class AIAuditService:
         for attempt in range(1, max_retries + 2):  # 首次 + N 次重试
             try:
                 result = await self._call_ai_async(text, retry_message)
+                
+                # 黑名单后置过滤：AI 格式正确后，检查黑名单词汇
+                result = self._apply_blacklist_filter(text, result)
                 
                 response = AuditResponse(
                     status=AuditStatus(result["status"]),
