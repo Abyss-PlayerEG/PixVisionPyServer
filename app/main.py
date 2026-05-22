@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from app.core.config import settings
 from app.routers.accounts import router as accounts_router
+from app.routers.ai_audit import router as ai_audit_router
 from app.schemas.response import error_response
 
 
@@ -15,14 +16,15 @@ def create_application() -> FastAPI:
     application = FastAPI(
         title=settings.APP_NAME,
         description="""
-## 🎯 多平台账号检测 API
+## 🎯 多平台账号检测 & AI 文案审核 API
 
-这是一个支持多平台的账号检测服务，采用 RESTful API 设计规范。
+这是一个支持多平台的账号检测服务，集成 AI 文案内容审核功能，采用 RESTful API 设计规范。
 
 ### ✨ 主要特性
 
 - 🔍 **多平台支持**: 支持 B站、抖音、微博等多个平台
 - 📊 **详细信息**: 获取用户完整信息
+- 🤖 **AI 文案审核**: 智能内容审核，自动识别违规/中立/正常内容
 - 🎨 **RESTful 设计**: 遵循 REST API 最佳实践
 - ⚡ **高性能**: 基于 FastAPI 和异步 HTTP 客户端
 - 📚 **友好文档**: 自动生成的交互式 API 文档
@@ -42,9 +44,14 @@ def create_application() -> FastAPI:
 
 ### 🚀 快速开始
 
+**账号检测相关**
 1. 检测账号是否存在: `GET /api/v1/accounts/{platform}/{user_id}`
 2. 获取账号详细信息: `GET /api/v1/accounts/{platform}/{user_id}/info`
 3. 查看支持的平台: `GET /api/v1/accounts/platforms`
+
+**AI 文案审核相关**
+1. 审核文案内容: `POST /api/v1/content/audit`
+2. 查看 AI 配置状态: `GET /api/v1/content/config`
         """,
         version=settings.APP_VERSION,
         docs_url=None,  # 使用自定义文档路由
@@ -69,6 +76,7 @@ def create_application() -> FastAPI:
     
     # 注册路由
     application.include_router(accounts_router, prefix=settings.API_V1_PREFIX)
+    application.include_router(ai_audit_router, prefix=settings.API_V1_PREFIX)
     
     return application
 
@@ -89,7 +97,9 @@ async def root():
         "examples": [
             f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365",
             f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365/info",
-            f"{settings.API_V1_PREFIX}/accounts/platforms"
+            f"{settings.API_V1_PREFIX}/accounts/platforms",
+            f"{settings.API_V1_PREFIX}/content/audit",
+            f"{settings.API_V1_PREFIX}/content/config"
         ]
     }
 

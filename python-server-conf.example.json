@@ -1,6 +1,11 @@
 {
+  "ai": {
+    "api_key": "your-api-key-here",
+    "model": "gpt-4o",
+    "base_url": null,
+    "timeout": 3
+  },
   "bilibili": {
-    "sessdata": "你的SESSDATA值填在这里",
-    "api_base": "https://api.bilibili.com"
+    "SESSDATA": "your-bilibili-sessdata-here"
   }
 }
