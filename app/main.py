@@ -1,6 +1,12 @@
 """
 FastAPI 主应用
 """
+import sys
+from pathlib import Path
+
+# 将项目根目录加入 sys.path，确保 app 包可被正确导入
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
