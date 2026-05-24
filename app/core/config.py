@@ -41,7 +41,11 @@ class Settings(BaseSettings):
     OPENAPI_URL: str = "/openapi.json"
     
     # CORS 配置
-    ALLOWED_ORIGINS: List[str] = ["*"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://124.221.107.68:1899/",
+        "http://127.0.0.1:1899/",
+        "http://localhost:9090/",
+    ]
     
     # AI 配置
     AI_API_KEY: str = ""
