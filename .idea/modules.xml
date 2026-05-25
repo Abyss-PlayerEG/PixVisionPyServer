@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pix-version-py-server.iml" filepath="$PROJECT_DIR$/.idea/pix-version-py-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/PixVersionPyServer.iml" filepath="$PROJECT_DIR$/.idea/PixVersionPyServer.iml" />
     </modules>
   </component>
 </project>
