@@ -241,7 +241,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pix-version-py-server"
+name = "pixversionpyserver"
 version = "1.0.0"
 source = { virtual = "." }
 dependencies = [
