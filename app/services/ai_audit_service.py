@@ -116,12 +116,15 @@ class AIAuditService:
             追加到用户消息中的格式修正提示
         """
         max_retries = settings.AI_AUDIT_MAX_RETRIES
-        return (
-            f"\n\n[格式修正提示] 你上一次的输出不符合要求的 JSON 格式，错误原因：{error_detail}。"
-            f"请严格只输出以下格式的 JSON，不要包含任何解释、标记或额外内容：\n"
-            f'{{"status": "normal|neutral|violation", "reason": "判断依据", "insult_words": ["词1", "词2"]}}\n'
-            f"这是第 {attempt}/{max_retries} 次重试。"
-        )
+        return (f"""
+            [格式修正提示] 
+            你上一次的输出不符合要求的 JSON 格式，错误原因：{error_detail}。
+            请严格只输出以下格式的 JSON，不要包含任何解释、标记或额外内容：
+            
+            {{"status": "normal|neutral|violation", "reason": "判断依据", "insult_words": ["词1", "词2"]}}
+            
+            这是第 {attempt}/{max_retries} 次重试。
+            """)
     
     def _call_ai_sync(self, text: str, retry_message: str = "") -> dict:
         """
