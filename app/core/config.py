@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     config_file: ClassVar[Path] = home_dir / ".pix_vision" / "python-server-conf.json"
 
     # 应用基本信息
-    APP_NAME: str = "PixVision"
+    APP_NAME: str = "PixVisionPyServer"
     APP_VERSION: str = "DEV-1.0.0"
     APP_DESCRIPTION: str = "像素视觉 Python FastApi 辅助服务端"
     

@@ -24,7 +24,7 @@ def create_application() -> FastAPI:
         description="""
 ## 🎯 像素视觉 Python FastApi 辅助服务端
 
-PixVision 多平台账号检测 & AI 文案审核 API，采用 RESTful API 设计规范。
+PixVisionPyServer 多平台账号检测 & AI 文案审核 API，采用 RESTful API 设计规范。
 
 ### ✨ 主要特性
 
