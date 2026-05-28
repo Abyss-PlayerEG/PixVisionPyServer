@@ -1,7 +1,7 @@
 [project]
 name = "PixVisionPyServer"
-version = "1.0.0"
-description = "像素视觉 Python 辅助服务"
+version = "DEV-1.0.0"
+description = "像素视觉 Python FastApi 辅助服务端"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

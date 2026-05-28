@@ -22,9 +22,9 @@ def create_application() -> FastAPI:
     application = FastAPI(
         title=settings.APP_NAME,
         description="""
-## 🎯 多平台账号检测 & AI 文案审核 API
+## 🎯 像素视觉 Python FastApi 辅助服务端
 
-这是一个支持多平台的账号检测服务，集成 AI 文案内容审核功能，采用 RESTful API 设计规范。
+PixVision 多平台账号检测 & AI 文案审核 API，采用 RESTful API 设计规范。
 
 ### ✨ 主要特性
 
