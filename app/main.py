@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.routers.accounts import router as accounts_router
 from app.routers.ai_audit import router as ai_audit_router
@@ -83,7 +84,12 @@ PixVisionPyServer 多平台账号检测 & AI 文案审核 API，采用 RESTful A
     # 注册路由
     application.include_router(accounts_router, prefix=settings.API_V1_PREFIX)
     application.include_router(ai_audit_router, prefix=settings.API_V1_PREFIX)
-    
+
+    # 挂载静态文件目录
+    static_dir = Path(__file__).resolve().parent / "static"
+    static_dir.mkdir(exist_ok=True)
+    application.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     return application
 
 
@@ -98,7 +104,6 @@ async def root():
         "message": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
-        "redoc": "/redoc",
         "api_v1": settings.API_V1_PREFIX,
         "examples": [
             f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365",
@@ -121,24 +126,27 @@ async def health_check():
 
 
 @app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    """自定义 Swagger UI 文档"""
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - API 文档",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-    )
-
-
-@app.get("/redoc", include_in_schema=False)
-async def custom_redoc_html():
-    """自定义 ReDoc 文档"""
-    return get_redoc_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - ReDoc",
-    )
+async def stoplight_elements_html():
+    """Stoplight Elements API 文档"""
+    return HTMLResponse(f"""
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{app.title} - API 文档</title>
+  <script src="/static/web-components.min.js"></script>
+  <link rel="stylesheet" href="/static/styles.min.css">
+</head>
+<body style="height: 100vh; margin: 0;">
+  <elements-api
+    apiDescriptionUrl="{app.openapi_url}"
+    router="hash"
+    layout="sidebar"
+  />
+</body>
+</html>
+""")
 
 
 if __name__ == "__main__":
