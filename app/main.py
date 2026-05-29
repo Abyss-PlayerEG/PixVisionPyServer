@@ -100,18 +100,19 @@ app = create_application()
 @app.get("/", tags=["首页"])
 async def root():
     """API 首页"""
+    static_dir = Path(__file__).resolve().parent / "static"
+    html_path = static_dir / "index.html"
+    if html_path.exists():
+        content = html_path.read_text(encoding="utf-8")
+        # 修正相对路径为 /static/ 绝对路径
+        content = content.replace("./style.css", "/static/style.css")
+        content = content.replace("./logo/logo.png", "/static/logo/logo.png")
+        return HTMLResponse(content)
     return {
         "message": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
         "api_v1": settings.API_V1_PREFIX,
-        "examples": [
-            f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365",
-            f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365/info",
-            f"{settings.API_V1_PREFIX}/accounts/platforms",
-            f"{settings.API_V1_PREFIX}/content/audit",
-            f"{settings.API_V1_PREFIX}/content/config"
-        ]
     }
 
 

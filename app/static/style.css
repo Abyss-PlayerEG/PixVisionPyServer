@@ -1,0 +1,90 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+  font-family: "Montserrat";
+  color: white;
+  transition: all 0.5s ease-in-out;
+}
+
+body {
+  background-color: black;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+.links-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.box-1 {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.div-top {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.div-top > h1 {
+  font-size: 80px;
+  margin: 0;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.div-top > h1:hover {
+  color: red;
+}
+
+.div-top > div {
+  margin-top: 10px;
+  font-size: 36px;
+  letter-spacing: 8px;
+  opacity: 0.9;
+}
+
+.div-bottom {
+  font-size: 30px;
+  text-align: center;
+  display: inline-block;
+}
+
+.div-bottom > a {
+  color: yellow;
+  cursor: pointer;
+}
+
+.div-bottom > a:hover {
+  color: red;
+  font-size: 40px;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("./font/ProggySquareSZ-3.ttf");
+}
