@@ -1,7 +1,7 @@
 [project]
-name = "PixVersionPyServer"
-version = "1.0.0"
-description = "多平台账号检测API服务 - 支持B站、抖音、微博等平台的账号检测和用户信息获取"
+name = "PixVisionPyServer"
+version = "DEV-1.0.0"
+description = "像素视觉 - 辅助服务"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

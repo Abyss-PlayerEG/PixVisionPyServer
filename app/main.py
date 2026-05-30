@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.routers.accounts import router as accounts_router
 from app.routers.ai_audit import router as ai_audit_router
@@ -22,9 +23,9 @@ def create_application() -> FastAPI:
     application = FastAPI(
         title=settings.APP_NAME,
         description="""
-## 🎯 多平台账号检测 & AI 文案审核 API
+## 🎯 像素视觉 Python FastApi 辅助服务端
 
-这是一个支持多平台的账号检测服务，集成 AI 文案内容审核功能，采用 RESTful API 设计规范。
+PixVisionPyServer 多平台账号检测 & AI 文案审核 API，采用 RESTful API 设计规范。
 
 ### ✨ 主要特性
 
@@ -83,7 +84,12 @@ def create_application() -> FastAPI:
     # 注册路由
     application.include_router(accounts_router, prefix=settings.API_V1_PREFIX)
     application.include_router(ai_audit_router, prefix=settings.API_V1_PREFIX)
-    
+
+    # 挂载静态文件目录
+    static_dir = Path(__file__).resolve().parent / "static"
+    static_dir.mkdir(exist_ok=True)
+    application.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     return application
 
 
@@ -94,19 +100,19 @@ app = create_application()
 @app.get("/", tags=["首页"])
 async def root():
     """API 首页"""
+    static_dir = Path(__file__).resolve().parent / "static"
+    html_path = static_dir / "index.html"
+    if html_path.exists():
+        content = html_path.read_text(encoding="utf-8")
+        # 修正相对路径为 /static/ 绝对路径
+        content = content.replace("./style.css", "/static/style.css")
+        content = content.replace("./logo/logo.png", "/static/logo/logo.png")
+        return HTMLResponse(content)
     return {
         "message": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
-        "redoc": "/redoc",
         "api_v1": settings.API_V1_PREFIX,
-        "examples": [
-            f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365",
-            f"{settings.API_V1_PREFIX}/accounts/bilibili/520500365/info",
-            f"{settings.API_V1_PREFIX}/accounts/platforms",
-            f"{settings.API_V1_PREFIX}/content/audit",
-            f"{settings.API_V1_PREFIX}/content/config"
-        ]
     }
 
 
@@ -121,25 +127,27 @@ async def health_check():
 
 
 @app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    """自定义 Swagger UI 文档"""
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - API 文档",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-    )
-
-
-@app.get("/redoc", include_in_schema=False)
-async def custom_redoc_html():
-    """自定义 ReDoc 文档"""
-    return get_redoc_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - ReDoc",
-        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
-    )
+async def stoplight_elements_html():
+    """Stoplight Elements API 文档"""
+    return HTMLResponse(f"""
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{app.title} - API 文档</title>
+  <script src="/static/web-components.min.js"></script>
+  <link rel="stylesheet" href="/static/styles.min.css">
+</head>
+<body style="height: 100vh; margin: 0;">
+  <elements-api
+    apiDescriptionUrl="{app.openapi_url}"
+    router="hash"
+    layout="sidebar"
+  />
+</body>
+</html>
+""")
 
 
 if __name__ == "__main__":

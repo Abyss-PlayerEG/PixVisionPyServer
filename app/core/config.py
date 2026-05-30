@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     config_file: ClassVar[Path] = home_dir / ".pix_vision" / "python-server-conf.json"
 
     # 应用基本信息
-    APP_NAME: str = "像素视觉 Python 辅助服务 API"
-    APP_VERSION: str = "1.0.0"
-    APP_DESCRIPTION: str = "用于辅助像素视觉的 Python 辅助服务"
+    APP_NAME: str = "像素视觉 - 辅助服务"
+    APP_VERSION: str = "DEV-1.0.0"
+    APP_DESCRIPTION: str = "像素视觉 - 辅助服务"
     
     # API 配置
     API_V1_PREFIX: str = "/api/v1"
