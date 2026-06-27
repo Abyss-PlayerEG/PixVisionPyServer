@@ -204,6 +204,7 @@ class NewPlatformService(BaseService):
 ## 作者
 
 - PlayerEG — gaster@vip.playereg.top
+- 贡献者：blue_sky_ks
 
 ## 许可证
 
